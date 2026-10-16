@@ -10,7 +10,7 @@ sequenceDiagram
     participant API as RunController
     participant Engine as WorkflowEngine
     participant Gates as GateService
-    participant Agent as AgentRegistry / Agent
+    participant Agent as Workflow Agent
     participant DB as PostgreSQL
     Client->>API: POST /runs(graph, requirement)
     API->>DB: Persist run and PENDING nodes
@@ -20,16 +20,16 @@ sequenceDiagram
     Engine->>Agent: Execute REQUIREMENTS
     Agent-->>Engine: REQUIREMENT_SPEC
     Engine->>Gates: Validate output
-    Engine->>DB: Save artifact, hash, lineage, state/audit
+    Engine->>DB: Save artifact, hash, lineage and state audit
     Engine->>Agent: Execute DESIGN
     Agent-->>Engine: DESIGN_DOC + API_SPEC
     Engine->>Gates: Evaluate schema + HUMAN_APPROVAL
     Gates-->>Engine: Approval required
-    Engine->>DB: Save pending outputs; mark AWAITING_APPROVAL
+    Engine->>DB: Save pending outputs and mark AWAITING_APPROVAL
     Engine-->>API: Run WAITING_APPROVAL
     Reviewer->>API: POST /runs/{id}/nodes/DESIGN/approval
     API->>Engine: decideApproval(approved=true)
-    Engine->>DB: Publish approved artifacts; audit decision
+    Engine->>DB: Publish approved artifacts and audit decision
     Engine->>Engine: Recompute ready node batch
     par Implementation branch
         Engine->>Agent: Execute IMPLEMENT
@@ -59,18 +59,18 @@ sequenceDiagram
     participant DB as PostgreSQL
     Engine->>Agent: Execute node attempt N
     Agent-->>Engine: Transient failure
-    Engine->>DB: Audit FAILED / RETRYING; increment attempt
+    Engine->>DB: Audit FAILED and RETRYING, then increment attempt
     Engine->>Agent: Execute next attempt (within maxRetries)
     Operator->>API: POST /runs/{id}/safe-stop
     API->>Engine: Set stop request
-    Engine->>DB: Mark pending work SAFE_STOPPED; audit actor/reason
+    Engine->>DB: Mark pending work SAFE_STOPPED and audit actor/reason
     Note over Engine,Agent: In-flight agent/provider call is not forcibly cancelled
     Operator->>API: POST /runs/{id}/nodes/{node}/retry
     API->>Engine: Validate retryable node state
     Engine->>DB: Reset eligible node and dispatch
     Operator->>API: POST /runs/{id}/nodes/{node}/rollback
     API->>Engine: Validate terminal run and succeeded node
-    Engine->>DB: Deactivate output; restore prior versions; mark descendants STALE
+    Engine->>DB: Deactivate output, restore prior versions and mark descendants STALE
     Operator->>API: POST /runs/{id}/nodes/{node}/replan
     API->>Engine: Validate target and dependent states
     Engine->>DB: Reset affected subgraph and audit REPLAN_REQUESTED
@@ -85,7 +85,7 @@ sequenceDiagram
     actor Client
     participant API as ShortUrlController
     participant Service as ShortUrlService
-    participant DB as PostgreSQL / URL_SHORTENER
+    participant DB as PostgreSQL URL_SHORTENER schema
     Client->>API: POST /api/urls {url, customAlias?, expiresAt?}
     API->>Service: Validate URL, alias, expiry
     Service->>DB: Check code and insert short_url
@@ -94,7 +94,7 @@ sequenceDiagram
     API-->>Client: 201 Created + Location
     Client->>API: GET /{code} + optional Referer
     API->>Service: resolveAndRecord(code, referrer)
-    Service->>DB: Find active link; check expiration
+    Service->>DB: Find active link and check expiration
     Service->>DB: Increment counter and insert click row
     Service-->>API: Target URL
     API-->>Client: 302 Found + Location
