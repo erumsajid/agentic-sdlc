@@ -110,4 +110,17 @@ After restarting the app, Prometheus-format metrics are available at
 The endpoint also exposes the standard `health` and `info` Actuator endpoints. Metrics use
 graph/node/state labels and omit run IDs and requirement text.
 
+## LLM-backed agents (step 7)
+
+The orchestrator currently uses deterministic stub agents; LLM mode is explicitly disabled in `orchestrator/src/main/resources/application.yml`. To enable an OpenAI Chat Completions-compatible provider later, change `agent.llm.enabled` to `true`, set `LLM_MODEL` and `LLM_BASE_URL`, and set `LLM_API_KEY` for providers that require a key, then restart the orchestrator. For example, PowerShell:
+
+```powershell
+$env:LLM_BASE_URL = "https://api.openai.com/v1"
+$env:LLM_MODEL = "gpt-4o-mini"
+$env:LLM_API_KEY = "<your-key>"
+mvn -pl orchestrator spring-boot:run
+```
+
+The LLM agent takes precedence over the stub and returns structured JSON artifacts for each graph role. It has no tool execution or repository write access. Credential-like requirements or input artifacts are blocked before they are sent to the provider. Provider failures use the workflow's bounded retry behavior; they do not silently fall back to stub output. Only send workflow content to a provider approved for that data. Keep API keys in environment variables, not source files or requirements.
+
 Importable Postman collections are in [`doc/`](doc/): the workflow verification collection for steps 1-5 uses `http://localhost:8080`, and [`doc/url-shortener.postman_collection.json`](doc/url-shortener.postman_collection.json) tests the shortener at `http://localhost:8081`.

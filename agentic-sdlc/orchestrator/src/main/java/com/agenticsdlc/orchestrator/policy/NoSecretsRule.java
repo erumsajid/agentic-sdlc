@@ -25,6 +25,12 @@ public class NoSecretsRule implements PolicyRule {
                 Pattern.compile("(?i)(?:password|passwd|secret|api[_-]?key|token)\\s*[:=]\\s*['\"]?[^\\s'\"]{8,}"));
     }
 
+    /** Returns true when text contains a credential pattern. The matched value is never returned. */
+    public static boolean containsSecret(String text) {
+        if (text == null) return false;
+        return PATTERNS.values().stream().anyMatch(pattern -> pattern.matcher(text).find());
+    }
+
     @Override
     public String id() {
         return ID;
