@@ -123,4 +123,8 @@ mvn -pl orchestrator spring-boot:run
 
 The LLM agent takes precedence over the stub and returns structured JSON artifacts for each graph role. It has no tool execution or repository write access. Credential-like requirements or input artifacts are blocked before they are sent to the provider. Provider failures use the workflow's bounded retry behavior; they do not silently fall back to stub output. Only send workflow content to a provider approved for that data. Keep API keys in environment variables, not source files or requirements.
 
+## Scenarios, tests, and documentation (step 8)
+
+Three workflow graphs are available: `greenfield-skeleton`, `brownfield-modernization`, and `ambiguous-requirement`. Run tests from the repository root with `mvn test` (no database required for unit tests). See [`doc/architecture-and-scenarios.md`](doc/architecture-and-scenarios.md) for architecture, scenario requests, setup, risks, tradeoffs, and validation status.
+
 Importable Postman collections are in [`doc/`](doc/): the workflow verification collection for steps 1-5 uses `http://localhost:8080`, and [`doc/url-shortener.postman_collection.json`](doc/url-shortener.postman_collection.json) tests the shortener at `http://localhost:8081`.

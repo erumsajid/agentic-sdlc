@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -21,8 +20,11 @@ public class GraphLoader {
             .enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS)
             .build();
 
-    @Autowired
-    private GraphValidator validator;
+    private final GraphValidator validator;
+
+    public GraphLoader(GraphValidator validator) {
+        this.validator = validator;
+    }
 
     public GraphDefinition parse(String yaml) {
         GraphDefinition definition;

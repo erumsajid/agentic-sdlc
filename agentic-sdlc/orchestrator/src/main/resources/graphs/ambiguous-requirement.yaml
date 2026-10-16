@@ -1,0 +1,73 @@
+name: ambiguous-requirement
+description: Surface unresolved scope, require human acceptance of assumptions, then deliver through the governed workflow
+version: 1
+nodes:
+  - id: CLARIFY_SCOPE
+    description: Identify missing decisions and propose explicit assumptions for human review
+    agent: PLANNER
+    produces: [CLARIFICATION_BRIEF, ASSUMPTIONS]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: CLARIFICATION_BRIEF:non-blank
+      - type: HUMAN_APPROVAL
+        rule: ambiguity-assumptions
+    maxRetries: 2
+
+  - id: REQUIREMENTS
+    description: Convert the accepted assumptions into testable requirements
+    agent: REQUIREMENTS_ANALYST
+    dependsOn: [CLARIFY_SCOPE]
+    consumes: [CLARIFICATION_BRIEF, ASSUMPTIONS]
+    produces: [REQUIREMENT_SPEC]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: REQUIREMENT_SPEC:non-blank
+    maxRetries: 2
+
+  - id: DESIGN
+    description: Create the design and API contract from the approved scope
+    agent: ARCHITECT
+    dependsOn: [REQUIREMENTS]
+    consumes: [REQUIREMENT_SPEC, ASSUMPTIONS]
+    produces: [DESIGN_DOC, API_SPEC]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: DESIGN_DOC:non-blank
+      - type: HUMAN_APPROVAL
+        rule: ambiguity-design
+    maxRetries: 2
+
+  - id: IMPLEMENT
+    description: Produce the implementation change
+    agent: IMPLEMENTER
+    dependsOn: [DESIGN]
+    consumes: [DESIGN_DOC, API_SPEC]
+    produces: [CODE_CHANGESET]
+    exitGates:
+      - type: QUALITY_CHECK
+        rule: CODE_CHANGESET:no-todo-markers
+      - type: POLICY_CHECK
+        rule: no-secrets
+    maxRetries: 3
+
+  - id: TEST_PLAN
+    description: Define tests that resolve the stated acceptance criteria
+    agent: TEST_ENGINEER
+    dependsOn: [DESIGN]
+    consumes: [API_SPEC, REQUIREMENT_SPEC]
+    produces: [TEST_REPORT]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: TEST_REPORT:non-blank
+    maxRetries: 2
+
+  - id: RELEASE_READINESS
+    description: Join implementation and test results for release readiness
+    agent: RELEASE_READINESS
+    dependsOn: [IMPLEMENT, TEST_PLAN]
+    consumes: [CODE_CHANGESET, TEST_REPORT]
+    produces: [RELEASE_REPORT]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: RELEASE_REPORT:non-blank
+    maxRetries: 1

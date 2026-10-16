@@ -1,0 +1,82 @@
+name: brownfield-modernization
+description: Modernize an existing service with discovery, impact analysis, review, parallel delivery, and release readiness
+version: 1
+nodes:
+  - id: DISCOVER
+    description: Establish the current system context and constraints
+    agent: PLANNER
+    produces: [CURRENT_STATE, COMPONENT_MAP]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: CURRENT_STATE:non-blank
+    maxRetries: 2
+
+  - id: REQUIREMENTS
+    description: Reconcile requested behavior with current system capabilities
+    agent: REQUIREMENTS_ANALYST
+    dependsOn: [DISCOVER]
+    consumes: [CURRENT_STATE, COMPONENT_MAP]
+    produces: [REQUIREMENT_SPEC, IMPACT_ANALYSIS]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: REQUIREMENT_SPEC:non-blank
+    maxRetries: 2
+
+  - id: DESIGN
+    description: Design a compatible change and API contract
+    agent: ARCHITECT
+    dependsOn: [REQUIREMENTS]
+    consumes: [CURRENT_STATE, REQUIREMENT_SPEC, IMPACT_ANALYSIS]
+    produces: [DESIGN_DOC, API_SPEC]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: DESIGN_DOC:non-blank
+      - type: HUMAN_APPROVAL
+        rule: brownfield-design
+    maxRetries: 2
+
+  - id: IMPLEMENT
+    description: Produce the implementation change for the existing service
+    agent: IMPLEMENTER
+    dependsOn: [DESIGN]
+    consumes: [DESIGN_DOC, API_SPEC, IMPACT_ANALYSIS]
+    produces: [CODE_CHANGESET]
+    exitGates:
+      - type: QUALITY_CHECK
+        rule: CODE_CHANGESET:no-todo-markers
+      - type: POLICY_CHECK
+        rule: no-secrets
+    maxRetries: 3
+
+  - id: TEST_PLAN
+    description: Define regression and compatibility coverage
+    agent: TEST_ENGINEER
+    dependsOn: [DESIGN]
+    consumes: [API_SPEC, IMPACT_ANALYSIS]
+    produces: [TEST_REPORT]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: TEST_REPORT:non-blank
+    maxRetries: 2
+
+  - id: SECURITY_REVIEW
+    description: Review the proposed change against existing trust boundaries
+    agent: SECURITY_GUARDRAIL
+    dependsOn: [DESIGN]
+    consumes: [DESIGN_DOC, API_SPEC, CURRENT_STATE]
+    produces: [SECURITY_ASSESSMENT]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: SECURITY_ASSESSMENT:non-blank
+    maxRetries: 2
+
+  - id: RELEASE_READINESS
+    description: Join implementation, regression testing, and security review
+    agent: RELEASE_READINESS
+    dependsOn: [IMPLEMENT, TEST_PLAN, SECURITY_REVIEW]
+    consumes: [CODE_CHANGESET, TEST_REPORT, SECURITY_ASSESSMENT]
+    produces: [RELEASE_REPORT]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: RELEASE_REPORT:non-blank
+    maxRetries: 1
