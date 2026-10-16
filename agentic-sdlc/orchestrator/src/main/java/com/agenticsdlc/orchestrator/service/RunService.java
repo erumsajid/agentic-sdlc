@@ -1,6 +1,7 @@
 package com.agenticsdlc.orchestrator.service;
 
 import com.agenticsdlc.orchestrator.dto.AuditEventResponse;
+import com.agenticsdlc.orchestrator.dto.ArtifactResponse;
 import com.agenticsdlc.orchestrator.dto.RunResponse;
 import com.agenticsdlc.orchestrator.entity.NodeExecutionEntity;
 import com.agenticsdlc.orchestrator.entity.RunEntity;
@@ -9,6 +10,7 @@ import com.agenticsdlc.orchestrator.enums.RunStatus;
 import com.agenticsdlc.orchestrator.graph.ExecutionGraph;
 import com.agenticsdlc.orchestrator.graph.GraphDefinition;
 import com.agenticsdlc.orchestrator.repository.AuditEventRepository;
+import com.agenticsdlc.orchestrator.repository.ArtifactRepository;
 import com.agenticsdlc.orchestrator.repository.NodeExecutionRepository;
 import com.agenticsdlc.orchestrator.repository.RunRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,13 @@ public class RunService {
     private AuditEventRepository audit;
 
     @Autowired
+    private ArtifactRepository artifacts;
+
+    @Autowired
     private WorkflowEngine engine;
+
+    @Autowired
+    private WorkflowMetrics metrics;
 
     /**
      * Creates the run and its PENDING nodes, then starts the engine in the background.
@@ -65,6 +73,7 @@ public class RunService {
         run.setCreatedAt(now);
         run.setUpdatedAt(now);
         runs.save(run);
+        metrics.runStarted(definition.getName());
 
         List<NodeExecutionEntity> rows = new ArrayList<>();
         for (String nodeId : new ExecutionGraph(definition).topologicalOrder()) {
@@ -104,5 +113,34 @@ public class RunService {
         return Optional.of(audit.findByRunIdOrderByIdAsc(runId).stream()
                 .map(AuditEventResponse::from)
                 .toList());
+    }
+
+    public List<ArtifactResponse> artifacts(UUID runId) {
+        if (!runs.existsById(runId)) return null;
+        return artifacts.findByRunId(runId).stream().map(ArtifactResponse::from).toList();
+    }
+
+    public void decideApproval(UUID runId, String nodeId, boolean approved, String actor, String reason) {
+        engine.decideApproval(runId, nodeId, approved, actorOrDefault(actor), reason);
+    }
+
+    public void safeStop(UUID runId, String actor, String reason) {
+        engine.safeStop(runId, actorOrDefault(actor), reason);
+    }
+
+    public void rollback(UUID runId, String nodeId, String actor, String reason) {
+        engine.rollback(runId, nodeId, actorOrDefault(actor), reason);
+    }
+
+    public void retry(UUID runId, String nodeId, String actor, String reason) {
+        engine.retry(runId, nodeId, actorOrDefault(actor), reason);
+    }
+
+    public void replan(UUID runId, String nodeId, String actor, String reason) {
+        engine.replan(runId, nodeId, actorOrDefault(actor), reason);
+    }
+
+    private String actorOrDefault(String actor) {
+        return actor == null || actor.isBlank() ? "api-user" : actor;
     }
 }

@@ -19,7 +19,7 @@ CREATE TABLE node_execution (
     PRIMARY KEY (run_id, node_id)
 );
 
--- Versioned, never overwritten. Lineage (inputs) is added in the lineage phase.
+-- Versioned, never overwritten; V3 adds input lineage and active-version tracking.
 CREATE TABLE artifact (
     id                UUID PRIMARY KEY,
     run_id            UUID         NOT NULL REFERENCES run (id),

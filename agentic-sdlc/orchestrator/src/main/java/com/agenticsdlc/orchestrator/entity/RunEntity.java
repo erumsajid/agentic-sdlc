@@ -36,6 +36,8 @@ public class RunEntity {
 
     private String traceId;
 
+    private boolean stopRequested;
+
     private Instant createdAt;
 
     private Instant updatedAt;

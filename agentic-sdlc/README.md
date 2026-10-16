@@ -39,9 +39,45 @@ curl -s localhost:8080/runs/<runId>/timeline
 ```
 
 ## Current scope
-Phase 2 engine: runs graph nodes with persisted state and an audit trail. Independent nodes
-whose dependencies have succeeded run concurrently; downstream join nodes wait for every
-dependency. The `greenfield-skeleton` graph forks after design into implementation and test
-planning, then joins at release readiness.
+Workflow engine: persists node state and an audit trail; runs independent ready nodes
+concurrently and waits for all dependencies at joins. The `greenfield-skeleton` graph pauses
+at the design approval checkpoint, then forks into implementation and test planning before
+joining at release readiness.
 
-Not yet implemented: human approval handling, retry/fallback/rollback, resume after restart.
+## Governance and replanning
+
+Approve or reject a pending checkpoint (approval also resumes the run):
+```bash
+curl -s -X POST localhost:8080/runs/<runId>/nodes/DESIGN/approval \
+  -H 'Content-Type: application/json' \
+  -d '{"approved":true,"actor":"reviewer","reason":"Design reviewed"}'
+```
+
+The run timeline records approval decisions, retries, rollback, safe-stop and replanning.
+Retryable agent and exit-gate failures retry up to the node's `maxRetries`; rejected/failed/blocked nodes
+can also be retried explicitly at `/runs/<runId>/nodes/<nodeId>/retry`. Safe-stop a running
+or approval-waiting run with `POST /runs/<runId>/safe-stop`.
+
+Artifacts are immutable versions with an `active` version and input lineage. Inspect them at
+`GET /runs/<runId>/artifacts`. Rollback an output with
+`POST /runs/<runId>/nodes/<nodeId>/rollback`; this deactivates the node's current artifacts,
+restores prior versions when available, and marks succeeded descendants stale. Re-run an
+updated node and its downstream dependents with
+`POST /runs/<runId>/nodes/<nodeId>/replan`.
+
+## Metrics
+
+After restarting the app, Prometheus-format metrics are available at
+`http://localhost:8080/actuator/prometheus`. The main workflow metrics are:
+
+- `orchestrator_runs_started_total` and `orchestrator_runs_finished_total` by graph and outcome
+- `orchestrator_run_duration_seconds` by graph and outcome
+- `orchestrator_node_attempts_total` and `orchestrator_node_attempt_duration_seconds` by node, agent and outcome
+- `orchestrator_node_transitions_total` by node and resulting state
+- `orchestrator_gates_evaluated_total` by gate type and outcome
+- `orchestrator_retries_total`, `orchestrator_approvals_total`, `orchestrator_rollbacks_total`,
+  `orchestrator_safe_stops_total` and `orchestrator_replans_total`
+- `orchestrator_fork_batch_size` and `orchestrator_artifacts_created_total`
+
+The endpoint also exposes the standard `health` and `info` Actuator endpoints. Metrics use
+graph/node/state labels and omit run IDs and requirement text.

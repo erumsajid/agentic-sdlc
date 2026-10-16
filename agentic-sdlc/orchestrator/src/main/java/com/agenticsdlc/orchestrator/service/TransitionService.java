@@ -30,6 +30,9 @@ public class TransitionService {
     @Autowired
     private AuditEventRepository audit;
 
+    @Autowired
+    private WorkflowMetrics metrics;
+
     @Transactional
     public void transition(RunEntity run, String nodeId, NodeState to, String actor, String reason) {
         NodeExecutionEntity node = nodes.findByRunIdAndNodeId(run.getId(), nodeId)
@@ -49,6 +52,7 @@ public class TransitionService {
         }
 
         audit.save(event(run, nodeId, from, to, STATE_TRANSITION, actor, reason));
+        metrics.nodeTransition(nodeId, to);
     }
 
     /** Records an audit event that is not a state change. */

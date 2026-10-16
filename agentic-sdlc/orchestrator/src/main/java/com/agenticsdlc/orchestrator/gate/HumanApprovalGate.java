@@ -5,7 +5,7 @@ import com.agenticsdlc.orchestrator.enums.GateType;
 import com.agenticsdlc.orchestrator.graph.GateDefinition;
 import org.springframework.stereotype.Component;
 
-/** Placeholder until approval checkpoints are built. Reports NOT_ENFORCED so the gap shows in the audit trail. */
+/** Approval is a blocking checkpoint; the run pauses until an explicit decision arrives. */
 @Component
 public class HumanApprovalGate implements GateEvaluator {
 
@@ -16,7 +16,6 @@ public class HumanApprovalGate implements GateEvaluator {
 
     @Override
     public GateEvaluation evaluate(GateDefinition gate, GateContext context) {
-        return new GateEvaluation(gate, GateOutcome.NOT_ENFORCED,
-                "approval checkpoints not implemented yet");
+        return new GateEvaluation(gate, GateOutcome.BLOCK, "human approval required");
     }
 }

@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 import lombok.Getter;
@@ -37,6 +38,9 @@ public class NodeExecutionEntity {
     private NodeState state;
 
     private int attempt = 1;
+
+    @Column(columnDefinition = "TEXT")
+    private String pendingOutputs;
 
     /** Optimistic locking: a concurrent change fails the save instead of overwriting. */
     @Version

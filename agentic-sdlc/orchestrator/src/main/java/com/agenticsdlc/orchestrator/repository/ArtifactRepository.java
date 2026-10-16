@@ -14,4 +14,11 @@ public interface ArtifactRepository extends JpaRepository<ArtifactEntity, UUID> 
     Optional<ArtifactEntity> findTopByRunIdAndTypeOrderByArtifactVersionDesc(UUID runId, String type);
 
     List<ArtifactEntity> findByRunId(UUID runId);
+
+    List<ArtifactEntity> findByRunIdAndActiveTrue(UUID runId);
+
+    List<ArtifactEntity> findByRunIdAndProducedByNodeAndActiveTrue(UUID runId, String producedByNode);
+
+    Optional<ArtifactEntity> findTopByRunIdAndTypeAndArtifactVersionLessThanOrderByArtifactVersionDesc(
+            UUID runId, String type, int artifactVersion);
 }

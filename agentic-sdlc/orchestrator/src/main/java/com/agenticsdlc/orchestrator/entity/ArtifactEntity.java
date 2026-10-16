@@ -26,11 +26,17 @@ public class ArtifactEntity {
     private String type;
 
     /** Artifact version. Not called "version" to avoid confusion with JPA's @Version. */
+    @Column(name = "version")
     private int artifactVersion;
 
     private String contentHash;
 
     private String producedByNode;
+
+    @Column(columnDefinition = "TEXT")
+    private String lineageJson;
+
+    private boolean active = true;
 
     @Column(columnDefinition = "TEXT")
     private String content;

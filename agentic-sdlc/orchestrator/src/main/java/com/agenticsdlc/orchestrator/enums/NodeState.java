@@ -11,7 +11,7 @@ public enum NodeState {
             case READY -> next == RUNNING || next == BLOCKED || next == SAFE_STOPPED;
             case RUNNING -> next == VALIDATING || next == FAILED || next == SAFE_STOPPED;
             case VALIDATING -> next == AWAITING_APPROVAL || next == SUCCEEDED || next == FAILED
-                    || next == REJECTED || next == BLOCKED;
+                    || next == REJECTED || next == BLOCKED || next == SAFE_STOPPED;
             case AWAITING_APPROVAL -> next == SUCCEEDED || next == REJECTED || next == SAFE_STOPPED;
             case FAILED -> next == RETRYING || next == FALLBACK || next == ROLLED_BACK || next == SAFE_STOPPED;
             case RETRYING, FALLBACK -> next == RUNNING || next == FAILED || next == SAFE_STOPPED;
@@ -19,7 +19,7 @@ public enum NodeState {
             case ROLLED_BACK -> next == PENDING || next == SAFE_STOPPED;
             case BLOCKED -> next == READY || next == SAFE_STOPPED;
             case STALE -> next == PENDING || next == SKIPPED || next == SAFE_STOPPED;
-            case SUCCEEDED -> next == STALE;
+            case SUCCEEDED -> next == STALE || next == ROLLED_BACK;
             case SKIPPED -> false;
             case SAFE_STOPPED -> next == READY;
         };
