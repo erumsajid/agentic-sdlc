@@ -24,6 +24,6 @@
 
     <modules>
         <module>orchestrator</module>
-        <!-- shortener-service is added in the URL shortener phase -->
+        <module>shortener-service</module>
     </modules>
 </project>

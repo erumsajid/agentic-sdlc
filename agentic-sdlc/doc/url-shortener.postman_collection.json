@@ -1,0 +1,114 @@
+{
+  "info": {
+    "name": "URL Shortener API",
+    "description": "Create short links, verify redirects and click analytics, and check validation and alias-conflict behavior. Start shortener-service on localhost:8081 first.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081" },
+    { "key": "code", "value": "" },
+    { "key": "alias", "value": "postman-demo" }
+  ],
+  "item": [
+    {
+      "name": "1 - Create short URL",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"https://example.com/a-long-page\",\n  \"customAlias\": \"{{alias}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/urls",
+        "description": "Creates a short link. If the alias already exists, change the collection variable `alias` and resend."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('short URL created', function () { pm.response.to.have.status(201); });",
+            "const body = pm.response.json();",
+            "pm.collectionVariables.set('code', body.code);",
+            "pm.test('response includes short URL and target', function () { pm.expect(body.shortUrl).to.include(body.code); pm.expect(body.targetUrl).to.eql('https://example.com/a-long-page'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "2 - Follow short URL (expect redirect)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/{{code}}",
+        "description": "Records a click and returns a 302 Location header. Redirect following is disabled for this request so Postman can assert the 302."
+      },
+      "protocolProfileBehavior": { "followRedirects": false },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('short URL redirects to the target', function () { pm.response.to.have.status(302); pm.expect(pm.response.headers.get('Location')).to.eql('https://example.com/a-long-page'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "3 - Read click analytics",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/urls/{{code}}/analytics",
+        "description": "Run after following the short URL. Analytics include total clicks, referrer host counts, and daily counts."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('analytics reports the redirect click', function () { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.code).to.eql(pm.collectionVariables.get('code')); pm.expect(body.totalClicks).to.be.at.least(1); pm.expect(body.dailyClicks).to.be.an('array'); });"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "4 - Duplicate alias returns conflict",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"https://example.org/another-page\",\n  \"customAlias\": \"{{alias}}\"\n}"
+        },
+        "url": "{{baseUrl}}/api/urls",
+        "description": "Run after request 1. The alias was already created, so the API should return HTTP 409."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": ["pm.test('duplicate alias is rejected', function () { pm.response.to.have.status(409); });"]
+        }
+      }]
+    },
+    {
+      "name": "5 - Reject invalid target URL",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"url\": \"javascript:alert(1)\"\n}"
+        },
+        "url": "{{baseUrl}}/api/urls",
+        "description": "Confirms that only absolute HTTP and HTTPS target URLs are accepted."
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": ["pm.test('unsafe URL scheme is rejected', function () { pm.response.to.have.status(400); });"]
+        }
+      }]
+    }
+  ]
+}

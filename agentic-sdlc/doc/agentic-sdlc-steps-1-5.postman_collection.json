@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "Agentic SDLC - Verify Steps 1-5",
+    "description": "Exercise the orchestrator workflow, governance, lineage, replanning, and metrics. Requests that depend on async completion are sent manually after checking the preceding status.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "runId", "value": "" },
+    { "key": "policyRunId", "value": "" },
+    { "key": "retryRunId", "value": "" },
+    { "key": "stopRunId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1 - Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/actuator/health" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('health endpoint responds OK', function () { pm.response.to.have.status(200); });"] } }]
+    },
+    {
+      "name": "2 - Start primary workflow",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"graph\": \"greenfield-skeleton\",\n  \"requirement\": \"Build the core URL shortener API\"\n}" },
+        "url": "{{baseUrl}}/runs",
+        "description": "Creates the main run and saves its runId to the collection."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('run accepted', function () { pm.response.to.have.status(202); });", "const body = pm.response.json();", "pm.collectionVariables.set('runId', body.runId);", "pm.test('runId was returned', function () { pm.expect(body.runId).to.be.a('string'); });"] } }]
+    },
+    {
+      "name": "3 - Check approval checkpoint",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{runId}}", "description": "Send after the run reaches DESIGN. Expected status is WAITING_APPROVAL and DESIGN is AWAITING_APPROVAL." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('run is waiting for design approval', function () { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.status).to.eql('WAITING_APPROVAL'); pm.expect(body.nodes.DESIGN).to.eql('AWAITING_APPROVAL'); });"] } }]
+    },
+    {
+      "name": "4 - Approve DESIGN",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"approved\": true,\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Approved during steps 1-5 verification\"\n}" },
+        "url": "{{baseUrl}}/runs/{{runId}}/nodes/DESIGN/approval",
+        "description": "Approving publishes the held design artifacts and resumes the run."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('approval accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "5 - Check completed fork/join",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{runId}}", "description": "Wait briefly after approval, then send until status is SUCCEEDED. Both fork branches and the join must succeed." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('all five graph nodes succeeded', function () { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.status).to.eql('SUCCEEDED'); ['REQUIREMENTS','DESIGN','IMPLEMENT','TEST_PLAN','RELEASE_READINESS'].forEach(function (id) { pm.expect(body.nodes[id], id + ' state').to.eql('SUCCEEDED'); }); });"] } }]
+    },
+    {
+      "name": "6 - Verify fork/join timeline",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{runId}}/timeline", "description": "Checks that RELEASE_READINESS started after both parallel branches succeeded." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('join waited for both branches', function () { pm.response.to.have.status(200); const events = pm.response.json(); const done = events.filter(e => e.eventType === 'STATE_TRANSITION' && e.toState === 'SUCCEEDED' && ['IMPLEMENT','TEST_PLAN'].includes(e.nodeId)); const join = events.find(e => e.eventType === 'STATE_TRANSITION' && e.nodeId === 'RELEASE_READINESS' && e.toState === 'RUNNING'); pm.expect(done.length).to.eql(2); pm.expect(join).to.exist; pm.expect(Date.parse(join.occurredAt)).to.be.at.least(Math.max.apply(null, done.map(e => Date.parse(e.occurredAt)))); });"] } }]
+    },
+    {
+      "name": "7 - Inspect artifact lineage",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{runId}}/artifacts", "description": "Inspect active versions and lineageJson input artifact IDs, versions, and hashes." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('artifacts include lineage', function () { pm.response.to.have.status(200); const artifacts = pm.response.json(); pm.expect(artifacts.length).to.be.greaterThan(0); const changeset = artifacts.find(a => a.type === 'CODE_CHANGESET' && a.active); pm.expect(changeset).to.exist; pm.expect(changeset.lineageJson).to.include('API_SPEC'); });"] } }]
+    },
+    {
+      "name": "8 - Replan IMPLEMENT and downstream nodes",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Verify downstream replanning\"\n}" },
+        "url": "{{baseUrl}}/runs/{{runId}}/nodes/IMPLEMENT/replan",
+        "description": "After the primary run succeeds, re-executes IMPLEMENT and its downstream RELEASE_READINESS join."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('replan accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "9 - Verify replan completed",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{runId}}", "description": "Resend until SUCCEEDED; inspect timeline/artifacts to see new versions." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('replanned run succeeded', function () { pm.response.to.have.status(200); const body = pm.response.json(); pm.expect(body.status).to.eql('SUCCEEDED'); pm.expect(body.nodes.IMPLEMENT).to.eql('SUCCEEDED'); pm.expect(body.nodes.RELEASE_READINESS).to.eql('SUCCEEDED'); });"] } }]
+    },
+    {
+      "name": "10 - Roll back IMPLEMENT",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Verify rollback behavior\"\n}" },
+        "url": "{{baseUrl}}/runs/{{runId}}/nodes/IMPLEMENT/rollback",
+        "description": "Marks IMPLEMENT rolled back, restores earlier active artifact versions when available, and invalidates downstream results."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('rollback accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "11 - Replan after rollback",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Restore the workflow after rollback check\"\n}" },
+        "url": "{{baseUrl}}/runs/{{runId}}/nodes/IMPLEMENT/replan",
+        "description": "Restores a complete successful run after the rollback verification."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('replan after rollback accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "12 - Start policy-guardrail check",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"graph\": \"greenfield-skeleton\",\n  \"requirement\": \"Use password=example-only-credential for the database\"\n}" },
+        "url": "{{baseUrl}}/runs",
+        "description": "Uses a deliberately fake credential string to verify the no-secrets policy blocks generated artifacts."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('policy check run accepted', function () { pm.response.to.have.status(202); });", "pm.collectionVariables.set('policyRunId', pm.response.json().runId);"] } }]
+    },
+    {
+      "name": "13 - Inspect policy-guardrail result",
+      "request": { "method": "GET", "url": "{{baseUrl}}/runs/{{policyRunId}}/timeline", "description": "Send after the policy run finishes. Expect a POLICY_CHECK no-secrets BLOCK and a failed/blocked run, with no secret value in the audit reason." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('policy denial is audited without echoing the value', function () { pm.response.to.have.status(200); const body = pm.response.json(); const policy = body.find(e => e.eventType === 'GATE_EVALUATED' && e.reason.includes('POLICY_CHECK:no-secrets')); pm.expect(policy).to.exist; pm.expect(policy.reason).to.include('BLOCK'); pm.expect(policy.reason).not.to.include('example-only-credential'); });"] } }]
+    },
+    {
+      "name": "14 - Start safe-stop check",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"graph\": \"greenfield-skeleton\",\n  \"requirement\": \"Build an API and pause for review\"\n}" },
+        "url": "{{baseUrl}}/runs",
+        "description": "Creates a second run for the safe-stop check. Save its runId and wait until it reaches the DESIGN approval checkpoint before stopping it."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('safe-stop run accepted', function () { pm.response.to.have.status(202); });", "pm.collectionVariables.set('stopRunId', pm.response.json().runId);"] } }]
+    },
+    {
+      "name": "15 - Safe-stop waiting run",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Verify safe-stop control\"\n}" },
+        "url": "{{baseUrl}}/runs/{{stopRunId}}/safe-stop",
+        "description": "Send once the run status is WAITING_APPROVAL. Expected response is 202; run status then becomes SAFE_STOPPED."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('safe-stop accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "16 - Start manual-retry check",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"graph\": \"greenfield-skeleton\",\n  \"requirement\": \"Build a reviewed API\"\n}" },
+        "url": "{{baseUrl}}/runs",
+        "description": "Creates a third run to verify rejection followed by an explicit retry."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('retry run accepted', function () { pm.response.to.have.status(202); });", "pm.collectionVariables.set('retryRunId', pm.response.json().runId);"] } }]
+    },
+    {
+      "name": "17 - Reject DESIGN",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"approved\": false,\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Verify retry after rejection\"\n}" },
+        "url": "{{baseUrl}}/runs/{{retryRunId}}/nodes/DESIGN/approval",
+        "description": "Wait for DESIGN to reach AWAITING_APPROVAL before sending."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('rejection accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "18 - Retry rejected DESIGN",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Retry after design rejection\"\n}" },
+        "url": "{{baseUrl}}/runs/{{retryRunId}}/nodes/DESIGN/retry",
+        "description": "Retries DESIGN; because its approval gate still applies, the run should pause for approval again."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('manual retry accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "19 - Approve retried DESIGN",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"approved\": true,\n  \"actor\": \"postman-reviewer\",\n  \"reason\": \"Approve retry verification\"\n}" },
+        "url": "{{baseUrl}}/runs/{{retryRunId}}/nodes/DESIGN/approval",
+        "description": "Send after the retried DESIGN reaches AWAITING_APPROVAL."
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('retry approval accepted', function () { pm.response.to.have.status(202); });"] } }]
+    },
+    {
+      "name": "20 - Prometheus metrics",
+      "request": { "method": "GET", "url": "{{baseUrl}}/actuator/prometheus", "description": "Run after the primary, policy, safe-stop, and retry checks. Inspect counters and durations for each workflow action." },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('metrics endpoint responds and includes workflow meters', function () { pm.response.to.have.status(200); const body = pm.response.text(); pm.expect(body).to.include('orchestrator_runs_started_total'); pm.expect(body).to.include('orchestrator_gates_evaluated_total'); pm.expect(body).to.include('orchestrator_node_attempts_total'); pm.expect(body).to.include('orchestrator_run_duration_seconds'); pm.expect(body).to.include('orchestrator_retries_total'); pm.expect(body).to.include('orchestrator_rollbacks_total'); pm.expect(body).to.include('orchestrator_safe_stops_total'); });"] } }]
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: shortener-service
+  datasource:
+    url: ${SHORTENER_DB_URL:jdbc:postgresql://localhost:5432/orchestrator?currentSchema=URL_SHORTENER}
+    username: ${SHORTENER_DB_USER:postgres}
+    password: ${SHORTENER_DB_PASSWORD:root}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    schemas: URL_SHORTENER
+    default-schema: URL_SHORTENER
+    table: shortener_flyway_schema_history
+server:
+  port: ${SHORTENER_PORT:8081}
+shortener:
+  public-base-url: ${SHORTENER_PUBLIC_BASE_URL:http://localhost:8081}

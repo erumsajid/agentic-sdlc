@@ -24,6 +24,34 @@ mvn test
 mvn -pl orchestrator spring-boot:run
 ```
 
+## URL shortener service (step 6)
+
+The URL shortener runs separately from the orchestrator on port 8081 and uses the same PostgreSQL database by default, with its tables and Flyway history isolated in the `URL_SHORTENER` schema. Create the schema before starting the service:
+
+```sql
+CREATE SCHEMA URL_SHORTENER;
+```
+
+Flyway creates `short_url` and `short_url_click` tables in that schema.
+
+```bash
+mvn -pl shortener-service spring-boot:run
+```
+
+Create a short URL (optional custom alias and expiry):
+```bash
+curl -i -X POST localhost:8081/api/urls \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com/a-long-page","customAlias":"demo-link"}'
+```
+
+Visit `http://localhost:8081/demo-link` to redirect. Each successful redirect records a click, timestamp and referrer host (when provided). Read totals, referrers and daily click counts with:
+```bash
+curl -s localhost:8081/api/urls/demo-link/analytics
+```
+
+The service only accepts absolute HTTP/HTTPS target URLs, rejects embedded URL credentials, returns 404 for unknown or expired codes, and returns 409 when an alias is already taken. Configure the DB with `SHORTENER_DB_URL`, `SHORTENER_DB_USER`, and `SHORTENER_DB_PASSWORD`; use `SHORTENER_PORT` and `SHORTENER_PUBLIC_BASE_URL` when deploying elsewhere.
+
 ## Try a run (Phase 2: stub agents)
 ```bash
 # start a run (returns 202 with a runId)
@@ -81,3 +109,5 @@ After restarting the app, Prometheus-format metrics are available at
 
 The endpoint also exposes the standard `health` and `info` Actuator endpoints. Metrics use
 graph/node/state labels and omit run IDs and requirement text.
+
+Importable Postman collections are in [`doc/`](doc/): the workflow verification collection for steps 1-5 uses `http://localhost:8080`, and [`doc/url-shortener.postman_collection.json`](doc/url-shortener.postman_collection.json) tests the shortener at `http://localhost:8081`.
