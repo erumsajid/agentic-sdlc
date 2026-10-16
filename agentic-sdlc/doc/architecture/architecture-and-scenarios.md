@@ -66,11 +66,7 @@ The run later pauses at `DESIGN`; review and approve that checkpoint using the g
 
 ## Setup and operation
 
-Prerequisites: JDK 21, Maven 3.9+, and PostgreSQL. Create the database used by the application, then configure the credentials in `orchestrator/src/main/resources/application.yml` (defaults in the current local configuration are user `postgres`, password `root`). For the shortener, create its isolated schema:
-
-```sql
-CREATE SCHEMA URL_SHORTENER;
-```
+Prerequisites: JDK 21, Maven 3.9+, and PostgreSQL. Create the `orchestrator` database once, then configure credentials in `orchestrator/src/main/resources/application.yml` (defaults in the current local configuration are user `postgres`, password `root`). Flyway creates the shortener's isolated `URL_SHORTENER` schema and tables on service startup.
 
 Start each service in a separate terminal:
 

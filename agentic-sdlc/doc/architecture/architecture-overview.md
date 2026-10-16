@@ -56,7 +56,7 @@ The `shortener-service` module runs on port 8081. It shares the configured Postg
 - `short_url`: unique short code, target URL, create/expiry times, atomic click counter.
 - `short_url_click`: one row per successful redirect, timestamp and optional referrer host.
 
-No client IP address is stored. Analytics are derived from click rows. The schema is created using `CREATE SCHEMA URL_SHORTENER;` before first startup.
+No client IP address is stored. Analytics are derived from click rows. Flyway creates the schema automatically when the shortener service starts; the database itself must exist first.
 
 ## 4. Workflow execution model
 

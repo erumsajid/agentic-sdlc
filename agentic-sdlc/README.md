@@ -3,16 +3,13 @@
 Agentic SDLC orchestrator (Schwab interview assignment). Custom engine, Java 21, Spring Boot, PostgreSQL.
 
 ## Prerequisites
-- JDK 21, Maven 3.9+
-- Local PostgreSQL
+- JDK 21 (JDK, not only a JRE)
+- Apache Maven 3.9+
+- PostgreSQL 14+ server
+- Postman Desktop or Postman web to import the collections (optional)
+- PostgreSQL command-line tools (`psql` and `createdb`) or pgAdmin for database setup
 
-## Database setup (once)
-```sql
-CREATE DATABASE orchestrator;
-```
-Defaults: `localhost:5432`, user `postgres`, password `postgres`.
-Override with env vars `DB_USER` and `DB_PASSWORD`, or edit `orchestrator/src/main/resources/application.yml`.
-Flyway creates the tables on first start.
+For exact install checks, database creation, service startup, and Postman import instructions, see [`doc/setup/README.md`](doc/setup/README.md).
 
 ## Run the tests (no database needed)
 ```bash
@@ -26,13 +23,7 @@ mvn -pl orchestrator spring-boot:run
 
 ## URL shortener service (step 6)
 
-The URL shortener runs separately from the orchestrator on port 8081 and uses the same PostgreSQL database by default, with its tables and Flyway history isolated in the `URL_SHORTENER` schema. Create the schema before starting the service:
-
-```sql
-CREATE SCHEMA URL_SHORTENER;
-```
-
-Flyway creates `short_url` and `short_url_click` tables in that schema.
+The URL shortener runs separately from the orchestrator on port 8081 and uses the same PostgreSQL database by default, with its tables and Flyway history isolated in the `URL_SHORTENER` schema. Flyway creates the schema and its tables on startup; only the `orchestrator` database itself needs to exist first.
 
 ```bash
 mvn -pl shortener-service spring-boot:run
