@@ -9,7 +9,9 @@ Agentic SDLC orchestrator (Schwab interview assignment). Custom engine, Java 21,
 - Postman Desktop or Postman web to import the collections (optional)
 - PostgreSQL command-line tools (`psql` and `createdb`) or pgAdmin for database setup
 
-For exact install checks, database creation, service startup, and Postman import instructions, see [`doc/setup/README.md`](doc/setup/README.md).
+## Setup guide
+
+Follow [`doc/setup/README.md`](doc/setup/README.md) for required software, PostgreSQL database creation, service startup, and Postman collection import steps.
 
 ## Run the tests (no database needed)
 ```bash
