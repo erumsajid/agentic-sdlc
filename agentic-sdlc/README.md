@@ -13,9 +13,6 @@ Agentic SDLC orchestrator. Custom engine, Java 21, Spring Boot, PostgreSQL.
 
 Follow [`doc/setup/README.md`](doc/setup/README.md) for required software, PostgreSQL database creation, service startup, and Postman collection import steps.
 
-## Architecture Doc 
-[`doc/architecture/README.md`]
-
 ## Run the tests (no database needed)
 ```bash
 mvn test
@@ -121,6 +118,13 @@ The LLM agent takes precedence over the stub and returns structured JSON artifac
 
 ## Scenarios, tests, and documentation (step 8)
 
-Three workflow graphs are available: `greenfield-skeleton`, `brownfield-modernization`, and `ambiguous-requirement`. Run tests from the repository root with `mvn test` (no database required for unit tests). The architecture documentation set is in [`doc/architecture/`](doc/architecture/), including the [full overview](doc/architecture/architecture-overview.md), [sequence diagrams](doc/architecture/sequence-diagrams.md), [decision tables](doc/architecture/decision-table.md), and [scenario/setup/validation guide](doc/architecture/architecture-and-scenarios.md).
+Three workflow graphs are available: `greenfield-skeleton`, `brownfield-modernization`, and `ambiguous-requirement`. Run tests from the repository root with `mvn test` (no database required for unit tests).
+
+## Architecture documentation
+
+- [Full system architecture](doc/architecture/architecture-overview.md)
+- [Sequence diagrams](doc/architecture/sequence-diagrams.md)
+- [Decision tables](doc/architecture/decision-table.md)
+- [Scenario, setup, risks, and validation guide](doc/architecture/architecture-and-scenarios.md)
 
 Importable Postman collections are in [`doc/`](doc/): the workflow verification collection for steps 1-5 uses `http://localhost:8080`, and [`doc/url-shortener.postman_collection.json`](doc/url-shortener.postman_collection.json) tests the shortener at `http://localhost:8081`.
