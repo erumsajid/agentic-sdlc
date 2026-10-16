@@ -42,3 +42,33 @@ nodes:
       - type: POLICY_CHECK
         rule: no-secrets
     maxRetries: 3
+
+  - id: TEST_PLAN
+    description: Prepare the test strategy and initial test report
+    agent: TEST_ENGINEER
+    dependsOn: [DESIGN]
+    consumes: [API_SPEC]
+    produces: [TEST_REPORT]
+    entryGates:
+      - type: ARTIFACT_EXISTS
+        rule: API_SPEC
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: TEST_REPORT:non-blank
+    maxRetries: 2
+
+  - id: RELEASE_READINESS
+    description: Join implementation and test results for release readiness
+    agent: RELEASE_READINESS
+    dependsOn: [IMPLEMENT, TEST_PLAN]
+    consumes: [CODE_CHANGESET, TEST_REPORT]
+    produces: [RELEASE_REPORT]
+    entryGates:
+      - type: ARTIFACT_EXISTS
+        rule: CODE_CHANGESET
+      - type: ARTIFACT_EXISTS
+        rule: TEST_REPORT
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: RELEASE_REPORT:non-blank
+    maxRetries: 1

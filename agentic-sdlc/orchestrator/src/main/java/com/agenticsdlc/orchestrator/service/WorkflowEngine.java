@@ -33,10 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Sequential engine with gates and policy checks.
- * Not built yet: approvals, parallel execution, retry, rollback, resume.
+ * Graph engine with gates and policy checks. Independent ready nodes execute concurrently.
+ * Not built yet: approvals, retry, rollback, resume.
  */
 @Service
 public class WorkflowEngine {
@@ -109,9 +110,12 @@ public class WorkflowEngine {
                 finish(run, anyBlocked ? RunStatus.BLOCKED : RunStatus.FAILED);
                 return;
             }
-            for (String nodeId : ready) {
-                runNode(run, graph.node(nodeId));
-            }
+            // All nodes in this snapshot have satisfied their dependencies. Run them as
+            // one forked batch, then recompute readiness only after every branch finishes.
+            CompletableFuture<?>[] branches = ready.stream()
+                    .map(nodeId -> CompletableFuture.runAsync(() -> runNode(run, graph.node(nodeId))))
+                    .toArray(CompletableFuture[]::new);
+            CompletableFuture.allOf(branches).join();
         }
     }
 

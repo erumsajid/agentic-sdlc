@@ -39,6 +39,9 @@ curl -s localhost:8080/runs/<runId>/timeline
 ```
 
 ## Current scope
-Phase 2 engine: runs a graph node by node with persisted state and an audit trail.
-Not yet enforced: gates and approvals, parallel execution, retry/fallback/rollback, resume after restart.
-Gates declared in a graph are recorded as `GATE_NOT_ENFORCED` events so nothing is skipped silently.
+Phase 2 engine: runs graph nodes with persisted state and an audit trail. Independent nodes
+whose dependencies have succeeded run concurrently; downstream join nodes wait for every
+dependency. The `greenfield-skeleton` graph forks after design into implementation and test
+planning, then joins at release readiness.
+
+Not yet implemented: human approval handling, retry/fallback/rollback, resume after restart.
