@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: agentic-orchestrator
+  datasource:
+    url: jdbc:postgresql://localhost:5432/orchestrator
+    username: postgres
+    password: root
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 8
+server:
+  port: 8080

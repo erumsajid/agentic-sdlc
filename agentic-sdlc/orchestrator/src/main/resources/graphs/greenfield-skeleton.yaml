@@ -1,0 +1,44 @@
+name: greenfield-skeleton
+description: Requirement to implementation, with gates
+version: 1
+nodes:
+  - id: REQUIREMENTS
+    description: Normalize the raw requirement
+    agent: REQUIREMENTS_ANALYST
+    produces: [REQUIREMENT_SPEC]
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: REQUIREMENT_SPEC:non-blank
+    maxRetries: 2
+
+  - id: DESIGN
+    description: Produce the design and API definition
+    agent: ARCHITECT
+    dependsOn: [REQUIREMENTS]
+    consumes: [REQUIREMENT_SPEC]
+    produces: [DESIGN_DOC, API_SPEC]
+    entryGates:
+      - type: ARTIFACT_EXISTS
+        rule: REQUIREMENT_SPEC
+    exitGates:
+      - type: SCHEMA_VALID
+        rule: DESIGN_DOC:non-blank
+      - type: HUMAN_APPROVAL
+        rule: design
+    maxRetries: 2
+
+  - id: IMPLEMENT
+    description: Generate the code change
+    agent: IMPLEMENTER
+    dependsOn: [DESIGN]
+    consumes: [DESIGN_DOC, API_SPEC]
+    produces: [CODE_CHANGESET]
+    entryGates:
+      - type: ARTIFACT_EXISTS
+        rule: DESIGN_DOC
+    exitGates:
+      - type: QUALITY_CHECK
+        rule: CODE_CHANGESET:no-todo-markers
+      - type: POLICY_CHECK
+        rule: no-secrets
+    maxRetries: 3

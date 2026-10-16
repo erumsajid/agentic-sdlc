@@ -1,0 +1,6 @@
+package com.agenticsdlc.orchestrator.enums;
+
+public enum AgentRole {
+    REQUIREMENTS_ANALYST, ARCHITECT, IMPLEMENTER, TEST_ENGINEER,
+    DOC_WRITER, SECURITY_GUARDRAIL, RELEASE_READINESS, PLANNER
+}
