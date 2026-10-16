@@ -1,6 +1,6 @@
 # agentic-sdlc
 
-Agentic SDLC orchestrator (Schwab interview assignment). Custom engine, Java 21, Spring Boot, PostgreSQL.
+Agentic SDLC orchestrator. Custom engine, Java 21, Spring Boot, PostgreSQL.
 
 ## Prerequisites
 - JDK 21 (JDK, not only a JRE)
@@ -12,6 +12,9 @@ Agentic SDLC orchestrator (Schwab interview assignment). Custom engine, Java 21,
 ## Setup guide
 
 Follow [`doc/setup/README.md`](doc/setup/README.md) for required software, PostgreSQL database creation, service startup, and Postman collection import steps.
+
+## Architecture Doc 
+[`doc/architecture/README.md`]
 
 ## Run the tests (no database needed)
 ```bash
